@@ -4,6 +4,36 @@
 
 @section('content')
 <div class="space-y-6">
+    <!-- Connection Alert -->
+    @if(!$trashBin->is_connected)
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <h3 class="text-sm font-medium text-yellow-800">IoT Device Not Connected</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                    <p class="mb-2">Your ESP32 device is not connected to the dashboard. To start receiving real-time data:</p>
+                    <ol class="list-decimal list-inside space-y-1 ml-2">
+                        <li>Make sure your ESP32 is powered on and WiFi is configured</li>
+                        <li>Check that the dashboard URL in your ESP32 code matches: <code class="bg-yellow-100 px-1 rounded">http://{{ request()->ip() }}:8000/api/sensor/data</code></li>
+                        <li>Verify your WiFi credentials are correct in the ESP32 code</li>
+                        <li>Check the Serial Monitor for connection status</li>
+                    </ol>
+                    <p class="mt-2">
+                        <a href="{{ asset('ESP32_SETUP.md') }}" class="font-medium underline hover:text-yellow-900" target="_blank">
+                            View ESP32 Setup Guide →
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Trash Status Card -->
