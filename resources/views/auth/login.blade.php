@@ -19,7 +19,7 @@
     <div class="w-full max-w-md">
         <!-- Logo/Header -->
         <div class="text-center mb-8">
-            <div class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg p-3">
+            <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg p-2">
                 <img src="{{ asset('login.png') }}" alt="Smart Trash Logo" class="w-full h-full object-contain">
             </div>
             <h1 class="text-3xl font-bold text-white">Smart Trash</h1>
