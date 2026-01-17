@@ -50,8 +50,8 @@
                      style="display: none;">
 
                     <!-- Header -->
-                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                        <h3 class="font-semibold text-gray-800">Notifications</h3>
+                    <div class="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
                         @if($unreadAlerts > 0)
                         <form action="{{ route('alerts.mark-all-read') }}" method="POST" class="inline">
                             @csrf
@@ -65,18 +65,18 @@
                     <!-- Alerts List -->
                     <div class="max-h-80 overflow-y-auto">
                         @forelse($recentAlerts as $alert)
-                        <a href="{{ route('alerts') }}" class="block px-4 py-2.5 hover:bg-gray-50 transition {{ !$alert->is_read ? 'bg-blue-50/50' : '' }}">
-                            <div class="flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                        <a href="{{ route('alerts') }}" class="block px-3 py-2 hover:bg-gray-50 transition {{ !$alert->is_read ? 'bg-blue-50/50' : '' }}">
+                            <div class="flex items-start gap-2.5">
+                                <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
                                     {{ $alert->type === 'full' ? 'bg-red-100 text-red-600' :
                                        ($alert->type === 'warning' ? 'bg-yellow-100 text-yellow-600' :
                                        ($alert->type === 'maintenance' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600')) }}">
                                     @if($alert->type === 'full')
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                         </svg>
                                     @else
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
                                     @endif
@@ -88,7 +88,7 @@
                                             <span class="w-2 h-2 bg-blue-600 rounded-full"></span>
                                         @endif
                                     </div>
-                                    <p class="text-sm text-gray-600 truncate">{{ $alert->message }}</p>
+                                    <p class="text-xs text-gray-600 line-clamp-2">{{ $alert->message }}</p>
                                     <p class="text-xs text-gray-400 mt-1">{{ $alert->created_at->diffForHumans() }}</p>
                                 </div>
                             </div>
@@ -105,8 +105,8 @@
 
                     <!-- Footer -->
                     @if($recentAlerts->count() > 0)
-                    <div class="px-4 py-3 border-t border-gray-200 text-center">
-                        <a href="{{ route('alerts') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <div class="px-3 py-2.5 border-t border-gray-200 text-center">
+                        <a href="{{ route('alerts') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
                             View all notifications
                         </a>
                     </div>
