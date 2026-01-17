@@ -46,12 +46,12 @@
                      x-transition:leave="transition ease-in duration-75"
                      x-transition:leave-start="transform opacity-100 scale-100"
                      x-transition:leave-end="transform opacity-0 scale-95"
-                     class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                     class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                      style="display: none;">
 
                     <!-- Header -->
-                    <div class="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between">
-                        <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
+                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-800">Notifications</h3>
                         @if($unreadAlerts > 0)
                         <form action="{{ route('alerts.mark-all-read') }}" method="POST" class="inline">
                             @csrf
@@ -65,8 +65,8 @@
                     <!-- Alerts List -->
                     <div class="max-h-80 overflow-y-auto">
                         @forelse($recentAlerts as $alert)
-                        <a href="{{ route('alerts') }}" class="block px-3 py-2 hover:bg-gray-50 transition {{ !$alert->is_read ? 'bg-blue-50/50' : '' }}">
-                            <div class="flex items-start gap-2.5">
+                        <a href="{{ route('alerts') }}" class="block px-4 py-2.5 hover:bg-gray-50 transition {{ !$alert->is_read ? 'bg-blue-50/50' : '' }}">
+                            <div class="flex items-start gap-3">
                                 <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
                                     {{ $alert->type === 'full' ? 'bg-red-100 text-red-600' :
                                        ($alert->type === 'warning' ? 'bg-yellow-100 text-yellow-600' :
@@ -105,8 +105,8 @@
 
                     <!-- Footer -->
                     @if($recentAlerts->count() > 0)
-                    <div class="px-3 py-2.5 border-t border-gray-200 text-center">
-                        <a href="{{ route('alerts') }}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                    <div class="px-4 py-3 border-t border-gray-200 text-center">
+                        <a href="{{ route('alerts') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                             View all notifications
                         </a>
                     </div>
