@@ -44,9 +44,9 @@ const char* password = "Marsa2504";
 #define CHAT_ID  "5437176087"
 
 // ================= DASHBOARD API =================
-// Ganti dengan IP address komputer yang menjalankan Laravel
-// Untuk mencari IP: buka CMD/Terminal, ketik "ipconfig" (Windows) atau "ifconfig" (Mac/Linux)
-const char* dashboardUrl = "http://192.168.1.100:8000/api/sensor/data";
+// IP address komputer yang menjalankan Laravel
+// IP ini didapat dari: ipconfig (Windows)
+const char* dashboardUrl = "http://192.168.1.4:8000/api/sensor/data";
 
 WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
