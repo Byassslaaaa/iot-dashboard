@@ -205,12 +205,13 @@
         $trashBin = \App\Models\TrashBin::first();
     @endphp
     @if($trashBin && !$trashBin->is_connected)
-    <div class="toast-container" x-data="{ show: true, dismissed: false }">
+    <div class="toast-container" x-data="{ show: true, dismissed: false, expanded: false }">
         <div x-show="show && !dismissed"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="transform translate-x-full opacity-0"
              x-transition:enter-end="transform translate-x-0 opacity-100"
-             class="toast bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg shadow-2xl border-l-4 border-yellow-500 p-4 max-w-md">
+             class="toast bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg shadow-2xl border-l-4 border-yellow-500 p-4"
+             :class="expanded ? 'max-w-lg' : 'max-w-md'">
             <div class="flex items-start gap-3">
                 <div class="flex-shrink-0">
                     <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,12 +219,41 @@
                     </svg>
                 </div>
                 <div class="flex-1">
-                    <h4 class="text-sm font-semibold text-yellow-900 mb-1">IoT Device Not Connected</h4>
-                    <p class="text-xs text-yellow-800 mb-2">Your ESP32 is not sending data to the dashboard.</p>
-                    <div class="flex gap-2">
+                    <h4 class="text-sm font-semibold text-yellow-900 mb-1">ESP32 Device Not Connected</h4>
+                    <p class="text-xs text-yellow-800 mb-2">No data received from your IoT device.</p>
+
+                    <!-- Quick Hints -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 text-xs">
+                        <p class="font-medium text-yellow-900 mb-1">Quick Setup:</p>
+                        <ol class="list-decimal list-inside space-y-0.5 text-yellow-800">
+                            <li>Power on ESP32 & connect to WiFi</li>
+                            <li>Set API URL: <code class="bg-white px-1 rounded text-[10px]">http://{{ request()->ip() }}:8000/api/sensor/data</code></li>
+                            <li>Check Serial Monitor for errors</li>
+                        </ol>
+                    </div>
+
+                    <!-- Expandable Details -->
+                    <div x-show="expanded" x-collapse class="text-xs text-yellow-800 space-y-1 mb-2">
+                        <div class="bg-yellow-50 border border-yellow-200 rounded p-2">
+                            <p class="font-medium text-yellow-900 mb-1">Troubleshooting:</p>
+                            <ul class="list-disc list-inside space-y-0.5">
+                                <li>Verify WiFi credentials in ESP32 code</li>
+                                <li>Ensure same network (ESP32 & Server)</li>
+                                <li>Check firewall/antivirus settings</li>
+                                <li>Test with: <code class="bg-white px-1 rounded text-[10px]">ping {{ request()->ip() }}</code></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button @click="expanded = !expanded" class="text-xs text-yellow-700 hover:text-yellow-900 font-medium">
+                            <span x-text="expanded ? '▼ Less Info' : '▶ More Info'"></span>
+                        </button>
+                        <span class="text-yellow-300">•</span>
                         <a href="{{ route('live-monitoring') }}" class="text-xs text-yellow-700 hover:text-yellow-900 font-medium underline">
-                            View Details →
+                            Live Monitor
                         </a>
+                        <span class="text-yellow-300">•</span>
                         <button @click="dismissed = true" class="text-xs text-yellow-600 hover:text-yellow-800">
                             Dismiss
                         </button>
