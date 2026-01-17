@@ -37,16 +37,16 @@
 #define SERVO_PIN 23
 
 // ================= WIFI & TELEGRAM =================
-const char* ssid = "vivo T1 5G";
-const char* password = "Marsa2504";
+const char* ssid = "YOUR_WIFI_SSID";           // Ganti dengan SSID WiFi Anda
+const char* password = "YOUR_WIFI_PASSWORD";    // Ganti dengan password WiFi Anda
 
-#define BOT_TOKEN "8590245268:AAGo7Qk7td8IxtBjo8i2uTQkGWuMRYIdgzs"
-#define CHAT_ID  "5437176087"
+#define BOT_TOKEN "YOUR_TELEGRAM_BOT_TOKEN"     // Ganti dengan token bot Telegram
+#define CHAT_ID  "YOUR_TELEGRAM_CHAT_ID"        // Ganti dengan chat ID Telegram
 
 // ================= DASHBOARD API =================
-// IP address komputer yang menjalankan Laravel
-// IP ini didapat dari: ipconfig (Windows)
-const char* dashboardUrl = "http://192.168.1.4:8000/api/sensor/data";
+// Ganti dengan IP address komputer yang menjalankan Laravel
+// Cara cek IP: buka CMD/Terminal, ketik "ipconfig" (Windows) atau "ifconfig" (Mac/Linux)
+const char* dashboardUrl = "http://YOUR_SERVER_IP:8000/api/sensor/data";
 
 WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
