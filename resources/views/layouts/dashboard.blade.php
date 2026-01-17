@@ -141,6 +141,44 @@
             border-radius: 9999px;
             font-size: 0.75rem;
         }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-hidden {
+            animation: slideOut 0.3s ease-in;
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
     </style>
 
     @vite(['resources/css/app.css'])
@@ -161,6 +199,45 @@
             </main>
         </div>
     </div>
+
+    <!-- Toast Notification for Disconnected Device -->
+    @php
+        $trashBin = \App\Models\TrashBin::first();
+    @endphp
+    @if($trashBin && !$trashBin->is_connected)
+    <div class="toast-container" x-data="{ show: true, dismissed: false }">
+        <div x-show="show && !dismissed"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="transform translate-x-full opacity-0"
+             x-transition:enter-end="transform translate-x-0 opacity-100"
+             class="toast bg-white rounded-lg shadow-2xl border-l-4 border-yellow-400 p-4 max-w-md">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                    <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800 mb-1">IoT Device Not Connected</h4>
+                    <p class="text-xs text-gray-600 mb-2">Your ESP32 is not sending data to the dashboard.</p>
+                    <div class="flex gap-2">
+                        <a href="{{ route('live-monitoring') }}" class="text-xs text-yellow-600 hover:text-yellow-700 font-medium">
+                            View Details →
+                        </a>
+                        <button @click="dismissed = true" class="text-xs text-gray-500 hover:text-gray-700">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+                <button @click="show = false" class="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @stack('scripts')
 </body>
