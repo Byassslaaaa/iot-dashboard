@@ -11,16 +11,19 @@
             <p class="text-gray-500">Real-time sensor data from your Smart Trash Bin</p>
         </div>
         <div class="flex items-center gap-2">
-            @if($trashBin->latestReading && $trashBin->latestReading->created_at->diffInMinutes(now()) < 5)
+            @if($trashBin->is_connected)
                 <span id="connectionStatus" class="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     Connected
                 </span>
             @else
-                <span id="connectionStatus" class="flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                    <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
-                    No Sensor Connected
+                <span id="connectionStatus" class="flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm">
+                    <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                    Disconnected
                 </span>
+            @endif
+            @if($trashBin->last_connection)
+                <span class="text-xs text-gray-500">Last seen: {{ $trashBin->last_connection->diffForHumans() }}</span>
             @endif
         </div>
     </div>
@@ -216,16 +219,24 @@
                     statusDisplay.className = `p-8 rounded-xl text-center ${statusColors[trashBin.status][0]} text-white mb-6`;
                     capacityBar.className = `h-full transition-all duration-500 ${barColors[trashBin.status]}`;
 
-                    // Update connection status
+                    // Update connection status based on is_connected attribute
                     const connectionStatus = document.getElementById('connectionStatus');
-                    if (reading) {
+                    if (trashBin.is_connected) {
                         connectionStatus.innerHTML = `
                             <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                             Connected
                         `;
                         connectionStatus.className = 'flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm';
+                    } else {
+                        connectionStatus.innerHTML = `
+                            <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                            Disconnected
+                        `;
+                        connectionStatus.className = 'flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm';
+                    }
 
-                        // Update sensor readings
+                    // Update sensor readings if available
+                    if (reading) {
                         document.getElementById('ultrasonicReading').innerHTML = `${reading.ultrasonic_distance} <span class="text-sm font-normal">cm</span>`;
                         document.getElementById('irReading').textContent = reading.ir_sensor_triggered ? 'TRIGGERED' : 'CLEAR';
                         document.getElementById('irReading').className = 'text-2xl font-bold text-gray-800';
@@ -233,12 +244,6 @@
                         document.getElementById('servoStatus').textContent = reading.servo_position === 90 ? 'LID OPEN' : 'LID CLOSED';
                         document.getElementById('buzzerReading').textContent = reading.buzzer_active ? 'ON' : 'OFF';
                         document.getElementById('buzzerReading').className = 'text-2xl font-bold text-gray-800';
-                    } else {
-                        connectionStatus.innerHTML = `
-                            <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
-                            No Sensor Connected
-                        `;
-                        connectionStatus.className = 'flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm';
                     }
                 }
             })

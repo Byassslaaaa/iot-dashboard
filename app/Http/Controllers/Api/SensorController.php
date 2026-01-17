@@ -60,6 +60,10 @@ class SensorController extends Controller
             $trashBin->capacity_percentage = round($capacityPercentage);
             $trashBin->status = $capacityPercentage >= 90 ? 'full' : ($capacityPercentage >= 50 ? 'normal' : 'empty');
         }
+
+        // Update connection status
+        $trashBin->last_connection = Carbon::now();
+        $trashBin->is_connected = true;
         $trashBin->save();
 
         // Create lid event if servo changed to 90 (open)
