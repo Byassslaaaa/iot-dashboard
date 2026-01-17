@@ -85,6 +85,10 @@ Web-based monitoring dashboard for Smart Trash Bin system using ESP32 microcontr
 
 8. **Access the application**
    - Open browser: `http://localhost:8000`
+   - Login page:
+
+   ![Login Page](public/login.png)
+
    - Default login credentials (after seeding):
      - Email: `admin@smarttrash.com`
      - Password: `password`
