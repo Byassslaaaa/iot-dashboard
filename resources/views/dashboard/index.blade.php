@@ -100,7 +100,6 @@
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-semibold text-gray-800">Daily Trash Activity</h3>
                 <select id="chartPeriod" class="px-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none">
-                    <option value="1">Last 1 Day</option>
                     <option value="7" selected>Last 7 Days</option>
                     <option value="14">Last 14 Days</option>
                 </select>
