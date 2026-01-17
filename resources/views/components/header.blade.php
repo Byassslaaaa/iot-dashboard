@@ -46,7 +46,7 @@
                      x-transition:leave="transition ease-in duration-75"
                      x-transition:leave-start="transform opacity-100 scale-100"
                      x-transition:leave-end="transform opacity-0 scale-95"
-                     class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                     class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                      style="display: none;">
 
                     <!-- Header -->
@@ -63,9 +63,9 @@
                     </div>
 
                     <!-- Alerts List -->
-                    <div class="max-h-96 overflow-y-auto">
+                    <div class="max-h-80 overflow-y-auto">
                         @forelse($recentAlerts as $alert)
-                        <a href="{{ route('alerts') }}" class="block px-4 py-3 hover:bg-gray-50 transition {{ !$alert->is_read ? 'bg-blue-50/50' : '' }}">
+                        <a href="{{ route('alerts') }}" class="block px-4 py-2.5 hover:bg-gray-50 transition {{ !$alert->is_read ? 'bg-blue-50/50' : '' }}">
                             <div class="flex items-start gap-3">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
                                     {{ $alert->type === 'full' ? 'bg-red-100 text-red-600' :
