@@ -46,9 +46,9 @@ class DashboardController extends Controller
             ->where('object_detected', true)
             ->count();
 
-        // Daily statistics untuk chart (14 hari terakhir)
+        // Daily statistics untuk chart (7 hari terakhir)
         $dailyStats = DailyStatistic::where('trash_bin_id', $trashBin->id)
-            ->where('date', '>=', Carbon::today()->subDays(14)->toDateString())
+            ->where('date', '>=', Carbon::today()->subDays(7)->toDateString())
             ->orderBy('date')
             ->get();
 
