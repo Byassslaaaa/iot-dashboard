@@ -184,7 +184,7 @@ class SensorController extends Controller
         $days = $request->get('days', 14);
 
         $stats = DailyStatistic::where('trash_bin_id', $trashBin->id)
-            ->where('date', '>=', Carbon::now()->subDays($days))
+            ->where('date', '>=', Carbon::today()->subDays($days)->toDateString())
             ->orderBy('date')
             ->get();
 

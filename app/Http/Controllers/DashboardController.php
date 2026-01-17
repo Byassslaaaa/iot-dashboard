@@ -48,7 +48,7 @@ class DashboardController extends Controller
 
         // Daily statistics untuk chart (14 hari terakhir)
         $dailyStats = DailyStatistic::where('trash_bin_id', $trashBin->id)
-            ->where('date', '>=', Carbon::now()->subDays(14))
+            ->where('date', '>=', Carbon::today()->subDays(14)->toDateString())
             ->orderBy('date')
             ->get();
 
@@ -117,5 +117,23 @@ class DashboardController extends Controller
     {
         $trashBin = TrashBin::first();
         return view('dashboard.about-device', compact('trashBin'));
+    }
+
+    public function markAllAlertsAsRead()
+    {
+        Alert::where('is_read', false)->update(['is_read' => true]);
+        return redirect()->route('alerts')->with('success', 'All alerts marked as read');
+    }
+
+    public function markAlertAsRead(Alert $alert)
+    {
+        $alert->update(['is_read' => true]);
+        return redirect()->back()->with('success', 'Alert marked as read');
+    }
+
+    public function resolveAlert(Alert $alert)
+    {
+        $alert->update(['is_resolved' => true, 'is_read' => true]);
+        return redirect()->back()->with('success', 'Alert resolved');
     }
 }

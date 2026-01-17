@@ -25,43 +25,49 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@example.com',
         ]);
 
-        // Create a trash bin
+        // Create a trash bin dengan status yang realistis
         $trashBin = TrashBin::create([
             'name' => 'Smart Trash Bin',
             'location' => 'Main Lobby',
             'status' => 'normal',
-            'capacity_percentage' => 45,
+            'capacity_percentage' => 65,
             'is_active' => true,
         ]);
 
-        // Generate daily statistics for the last 14 days
-        for ($i = 14; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i);
+        // Generate daily statistics untuk 14 hari terakhir (termasuk hari ini)
+        $today = Carbon::today();
+        for ($i = 13; $i >= 0; $i--) {
+            $date = $today->copy()->subDays($i);
 
             DailyStatistic::create([
                 'trash_bin_id' => $trashBin->id,
                 'date' => $date->format('Y-m-d'),
-                'lid_open_count' => rand(20, 60),
-                'object_detect_count' => rand(15, 55),
-                'full_alerts_count' => rand(0, 3),
-                'earnings' => rand(200, 600) / 10,
-                'costs' => rand(100, 300) / 10,
+                'lid_open_count' => rand(25, 55),
+                'object_detect_count' => rand(20, 50),
+                'full_alerts_count' => rand(0, 2),
+                'earnings' => rand(200, 500) / 10,
+                'costs' => rand(100, 250) / 10,
+                'created_at' => $date,
+                'updated_at' => $date,
             ]);
         }
 
-        // Generate some lid events for today
-        for ($i = 0; $i < 12; $i++) {
+        // Generate lid events untuk hari ini
+        $todayOpenCount = rand(8, 15);
+        for ($i = 0; $i < $todayOpenCount; $i++) {
             LidEvent::create([
                 'trash_bin_id' => $trashBin->id,
                 'event_type' => 'open',
-                'created_at' => Carbon::today()->addHours(rand(0, 23))->addMinutes(rand(0, 59)),
+                'created_at' => $today->copy()->addHours(rand(6, 22))->addMinutes(rand(0, 59)),
             ]);
         }
 
-        // Generate recent sensor readings
-        for ($i = 0; $i < 50; $i++) {
-            $distance = rand(5, 35);
-            $irTriggered = rand(0, 10) > 8;
+        // Generate recent sensor readings (setiap 5 menit selama 4 jam terakhir)
+        $now = Carbon::now();
+        for ($i = 48; $i >= 0; $i--) {
+            $readingTime = $now->copy()->subMinutes($i * 5);
+            $distance = rand(8, 30);
+            $irTriggered = $distance < 5 || rand(0, 20) === 0;
 
             SensorReading::create([
                 'trash_bin_id' => $trashBin->id,
@@ -70,47 +76,70 @@ class DatabaseSeeder extends Seeder
                 'servo_position' => $distance < 20 ? 90 : 0,
                 'buzzer_active' => $irTriggered,
                 'object_detected' => $distance < 20,
-                'created_at' => Carbon::now()->subMinutes($i * 5),
+                'created_at' => $readingTime,
+                'updated_at' => $readingTime,
             ]);
         }
 
-        // Generate some alerts
-        $alertTypes = ['full', 'warning', 'maintenance'];
-        $alertMessages = [
-            'full' => 'Tempat sampah sudah penuh! Segera kosongkan.',
-            'warning' => 'Kapasitas hampir mencapai 80%.',
-            'maintenance' => 'Jadwal pemeliharaan rutin.',
+        // Generate alerts
+        $alertData = [
+            ['type' => 'full', 'message' => 'Tempat sampah sudah penuh! Segera kosongkan.', 'hours_ago' => 2],
+            ['type' => 'warning', 'message' => 'Kapasitas sudah mencapai 80%.', 'hours_ago' => 5],
+            ['type' => 'full', 'message' => 'Tempat sampah sudah penuh! Segera kosongkan.', 'hours_ago' => 24],
+            ['type' => 'maintenance', 'message' => 'Sensor ultrasonik perlu dikalibrasi.', 'hours_ago' => 48],
+            ['type' => 'warning', 'message' => 'Koneksi WiFi tidak stabil.', 'hours_ago' => 72],
         ];
 
-        for ($i = 0; $i < 5; $i++) {
-            $type = $alertTypes[array_rand($alertTypes)];
+        foreach ($alertData as $index => $alert) {
             Alert::create([
                 'trash_bin_id' => $trashBin->id,
-                'type' => $type,
-                'message' => $alertMessages[$type],
-                'is_read' => rand(0, 1),
-                'is_resolved' => rand(0, 1),
-                'created_at' => Carbon::now()->subHours(rand(1, 72)),
+                'type' => $alert['type'],
+                'message' => $alert['message'],
+                'is_read' => $index > 1,
+                'is_resolved' => $index > 2,
+                'created_at' => Carbon::now()->subHours($alert['hours_ago']),
             ]);
         }
 
         // Generate system logs
-        $logActions = [
-            ['action' => 'sensor_reading', 'description' => 'Sensor data received', 'level' => 'info'],
-            ['action' => 'status_change', 'description' => 'Status changed to normal', 'level' => 'info'],
-            ['action' => 'lid_opened', 'description' => 'Lid opened by user', 'level' => 'info'],
-            ['action' => 'full_alert', 'description' => 'Trash bin is full', 'level' => 'warning'],
-            ['action' => 'connection_lost', 'description' => 'WiFi connection lost', 'level' => 'error'],
+        $logData = [
+            ['action' => 'sensor_reading', 'description' => 'Data sensor diterima: Jarak 15cm', 'level' => 'info', 'minutes_ago' => 5],
+            ['action' => 'lid_opened', 'description' => 'Tutup tempat sampah dibuka', 'level' => 'info', 'minutes_ago' => 10],
+            ['action' => 'lid_closed', 'description' => 'Tutup tempat sampah ditutup', 'level' => 'info', 'minutes_ago' => 12],
+            ['action' => 'sensor_reading', 'description' => 'Data sensor diterima: Jarak 25cm', 'level' => 'info', 'minutes_ago' => 15],
+            ['action' => 'status_change', 'description' => 'Status berubah: empty -> normal', 'level' => 'info', 'minutes_ago' => 30],
+            ['action' => 'full_alert', 'description' => 'Tempat sampah penuh terdeteksi!', 'level' => 'warning', 'minutes_ago' => 120],
+            ['action' => 'telegram_sent', 'description' => 'Notifikasi Telegram terkirim', 'level' => 'info', 'minutes_ago' => 121],
+            ['action' => 'wifi_reconnect', 'description' => 'WiFi reconnected setelah disconnect', 'level' => 'warning', 'minutes_ago' => 180],
+            ['action' => 'system_boot', 'description' => 'Sistem ESP32 boot ulang', 'level' => 'info', 'minutes_ago' => 360],
+            ['action' => 'sensor_error', 'description' => 'Sensor ultrasonik timeout', 'level' => 'error', 'minutes_ago' => 480],
         ];
 
-        for ($i = 0; $i < 20; $i++) {
-            $log = $logActions[array_rand($logActions)];
+        foreach ($logData as $log) {
             SystemLog::create([
                 'trash_bin_id' => $trashBin->id,
                 'level' => $log['level'],
                 'action' => $log['action'],
                 'description' => $log['description'],
-                'created_at' => Carbon::now()->subMinutes(rand(1, 1440)),
+                'created_at' => Carbon::now()->subMinutes($log['minutes_ago']),
+            ]);
+        }
+
+        // Tambahkan lebih banyak logs random
+        $randomActions = [
+            ['action' => 'sensor_reading', 'description' => 'Data sensor diterima', 'level' => 'info'],
+            ['action' => 'lid_opened', 'description' => 'Tutup dibuka oleh pengguna', 'level' => 'info'],
+            ['action' => 'object_detected', 'description' => 'Objek terdeteksi di depan sensor', 'level' => 'info'],
+        ];
+
+        for ($i = 0; $i < 15; $i++) {
+            $randomLog = $randomActions[array_rand($randomActions)];
+            SystemLog::create([
+                'trash_bin_id' => $trashBin->id,
+                'level' => $randomLog['level'],
+                'action' => $randomLog['action'],
+                'description' => $randomLog['description'],
+                'created_at' => Carbon::now()->subMinutes(rand(20, 1440)),
             ]);
         }
     }

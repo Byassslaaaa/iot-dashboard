@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', 'Dashboard - Smart Trash Monitoring')
 
@@ -7,7 +7,8 @@
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Trash Status Card -->
-        <div class="card p-6 {{ $trashBin->status === 'full' ? 'status-card-full' : ($trashBin->status === 'normal' ? 'status-card-normal' : 'status-card-empty') }} text-white cursor-pointer hover:scale-[1.02] transition-transform">
+        <div class="p-6 rounded-xl shadow cursor-pointer hover:scale-[1.02] transition-transform text-white"
+             style="background: linear-gradient(135deg, {{ $trashBin->status === 'full' ? '#ef4444, #dc2626' : ($trashBin->status === 'normal' ? '#22c55e, #16a34a' : '#6b7280, #4b5563') }})">
             <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">

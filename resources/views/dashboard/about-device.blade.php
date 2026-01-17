@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', 'About Device - Smart Trash')
 
@@ -14,10 +14,8 @@
         <!-- Device Info -->
         <div class="card p-6">
             <div class="flex items-center gap-4 mb-6">
-                <div class="w-16 h-16 bg-gradient-to-br from-gray-700 to-gray-900 rounded-2xl flex items-center justify-center">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
+                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2 border border-gray-200">
+                    <img src="{{ asset('about.png') }}" alt="Smart Trash Logo" class="w-full h-full object-contain">
                 </div>
                 <div>
                     <h3 class="text-xl font-semibold text-gray-800">{{ $trashBin->name ?? 'Smart Trash Bin' }}</h3>
@@ -52,9 +50,9 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Hardware Specifications</h3>
 
             <div class="space-y-4">
-                <div class="p-4 bg-blue-50 rounded-lg">
+                <div class="p-4 bg-gray-100 rounded-lg">
                     <div class="flex items-center gap-3 mb-2">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
                         </svg>
                         <span class="font-medium text-gray-800">Microcontroller</span>
@@ -63,9 +61,9 @@
                     <p class="text-xs text-gray-500 mt-1">WiFi + Bluetooth enabled</p>
                 </div>
 
-                <div class="p-4 bg-green-50 rounded-lg">
+                <div class="p-4 bg-gray-100 rounded-lg">
                     <div class="flex items-center gap-3 mb-2">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
                         <span class="font-medium text-gray-800">Ultrasonic Sensor</span>
@@ -74,9 +72,9 @@
                     <p class="text-xs text-gray-500 mt-1">Range: 2cm - 400cm</p>
                 </div>
 
-                <div class="p-4 bg-purple-50 rounded-lg">
+                <div class="p-4 bg-gray-100 rounded-lg">
                     <div class="flex items-center gap-3 mb-2">
-                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
@@ -86,9 +84,9 @@
                     <p class="text-xs text-gray-500 mt-1">Detects when bin is full</p>
                 </div>
 
-                <div class="p-4 bg-orange-50 rounded-lg">
+                <div class="p-4 bg-gray-100 rounded-lg">
                     <div class="flex items-center gap-3 mb-2">
-                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                         <span class="font-medium text-gray-800">Servo Motor</span>
@@ -151,7 +149,7 @@
 
             <ul class="space-y-3">
                 <li class="flex items-start gap-3">
-                    <span class="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="w-6 h-6 bg-gray-200 text-gray-800 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
@@ -162,7 +160,7 @@
                     </div>
                 </li>
                 <li class="flex items-start gap-3">
-                    <span class="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="w-6 h-6 bg-gray-200 text-gray-800 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
@@ -173,7 +171,7 @@
                     </div>
                 </li>
                 <li class="flex items-start gap-3">
-                    <span class="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="w-6 h-6 bg-gray-200 text-gray-800 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
@@ -184,7 +182,7 @@
                     </div>
                 </li>
                 <li class="flex items-start gap-3">
-                    <span class="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="w-6 h-6 bg-gray-200 text-gray-800 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
@@ -195,7 +193,7 @@
                     </div>
                 </li>
                 <li class="flex items-start gap-3">
-                    <span class="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="w-6 h-6 bg-gray-200 text-gray-800 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
