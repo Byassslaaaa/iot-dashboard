@@ -37,14 +37,16 @@
 #define SERVO_PIN 23
 
 // ================= WIFI & TELEGRAM =================
-const char* ssid = "YOUR_WIFI_SSID";           // Ganti dengan SSID WiFi Anda
-const char* password = "YOUR_WIFI_PASSWORD";    // Ganti dengan password WiFi Anda
+const char* ssid = "vivo T1 5G";
+const char* password = "Marsa2504";
 
-#define BOT_TOKEN "YOUR_TELEGRAM_BOT_TOKEN"     // Token bot Telegram
-#define CHAT_ID "YOUR_TELEGRAM_CHAT_ID"         // Chat ID Telegram
+#define BOT_TOKEN "8590245268:AAGo7Qk7td8IxtBjo8i2uTQkGWuMRYIdgzs"
+#define CHAT_ID  "5437176087"
 
 // ================= DASHBOARD API =================
-const char* dashboardUrl = "http://YOUR_SERVER_IP:8000/api/sensor/data";  // Ganti dengan IP server Laravel
+// Ganti dengan IP address komputer yang menjalankan Laravel
+// Untuk mencari IP: buka CMD/Terminal, ketik "ipconfig" (Windows) atau "ifconfig" (Mac/Linux)
+const char* dashboardUrl = "http://192.168.1.100:8000/api/sensor/data";
 
 WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
@@ -81,36 +83,38 @@ void drawEyesWithFullText() {
 
 // ================= SEND TO DASHBOARD =================
 void sendToDashboard(int dist, bool irTriggered, int servoPos, bool buzzerActive) {
-    if (WiFi.status() == WL_CONNECTED) {
-        HTTPClient http;
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
 
-        http.begin(dashboardUrl);
-        http.addHeader("Content-Type", "application/json");
+    http.begin(dashboardUrl);
+    http.addHeader("Content-Type", "application/json");
 
-        // Buat JSON payload
-        String jsonPayload = "{";
-        jsonPayload += "\"distance\":" + String(dist) + ",";
-        jsonPayload += "\"ir_triggered\":" + String(irTriggered ? "true" : "false") + ",";
-        jsonPayload += "\"servo_position\":" + String(servoPos) + ",";
-        jsonPayload += "\"buzzer_active\":" + String(buzzerActive ? "true" : "false");
-        jsonPayload += "}";
+    // Buat JSON payload
+    String jsonPayload = "{";
+    jsonPayload += "\"distance\":" + String(dist) + ",";
+    jsonPayload += "\"ir_triggered\":" + String(irTriggered ? "true" : "false") + ",";
+    jsonPayload += "\"servo_position\":" + String(servoPos) + ",";
+    jsonPayload += "\"buzzer_active\":" + String(buzzerActive ? "true" : "false");
+    jsonPayload += "}";
 
-        int httpResponseCode = http.POST(jsonPayload);
+    Serial.println("Sending to dashboard: " + jsonPayload);
 
-        if (httpResponseCode > 0) {
-            Serial.print("Dashboard Response: ");
-            Serial.println(httpResponseCode);
-            String response = http.getString();
-            Serial.println(response);
-        } else {
-            Serial.print("Error sending to dashboard: ");
-            Serial.println(httpResponseCode);
-        }
+    int httpResponseCode = http.POST(jsonPayload);
 
-        http.end();
+    if (httpResponseCode > 0) {
+      Serial.print("Dashboard Response: ");
+      Serial.println(httpResponseCode);
+      String response = http.getString();
+      Serial.println(response);
     } else {
-        Serial.println("WiFi Disconnected - Cannot send to dashboard");
+      Serial.print("Error sending to dashboard: ");
+      Serial.println(httpResponseCode);
     }
+
+    http.end();
+  } else {
+    Serial.println("WiFi Disconnected - Cannot send to dashboard");
+  }
 }
 
 // ================= SETUP =================
@@ -182,7 +186,7 @@ void loop() {
     digitalWrite(TRIG, LOW);
 
     duration = pulseIn(ECHO, HIGH, 30000);
-    distance = duration * 0.034 / 2;
+    distance = duration * 0.034 / 2;  // 0.034 cm/microsecond (kecepatan suara)
 
     // Variabel untuk tracking status saat ini
     int currentServoPos = servo.read();
@@ -249,12 +253,14 @@ void loop() {
         display.println("STATUS: READY");
     }
 
-    // Tampilkan info WiFi
+    // Tampilkan info WiFi dan Dashboard
     display.setCursor(0, 40);
     if (WiFi.status() == WL_CONNECTED) {
-        display.println("WiFi: Connected");
+      display.println("WiFi: Connected");
+      display.println("Dashboard: Active");
     } else {
-        display.println("WiFi: Disconnected");
+      display.println("WiFi: Disconnected");
+      display.println("Dashboard: Offline");
     }
 
     display.display();
