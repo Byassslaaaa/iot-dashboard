@@ -46,7 +46,7 @@ const char* password = "YOUR_WIFI_PASSWORD";    // Ganti dengan password WiFi An
 // ================= DASHBOARD API =================
 // Ganti dengan IP address komputer yang menjalankan Laravel
 // Cara cek IP: buka CMD/Terminal, ketik "ipconfig" (Windows) atau "ifconfig" (Mac/Linux)
-const char* dashboardUrl = "http://YOUR_SERVER_IP:8000/api/sensor/data";
+const char* dashboardUrl = "http://192.168.100.128:8000/api/sensor/data";
 
 WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
@@ -58,14 +58,22 @@ Adafruit_SSD1306 display(128, 64, &Wire, -1);
 // ================= VARIABEL =================
 long duration;
 int distance;
+int prevDistance = -1;
 bool full = false;
+bool prevFull = false;
 bool notifTerkirim = false;
-unsigned long ultrasonicTimer = 0;
+unsigned long servoCloseTimer = 0;
 bool waitingToClose = false;
+int prevServoPos = 0;
+bool prevBuzzer = false;
 
-// Interval untuk mengirim data ke dashboard (5 detik)
+// Interval untuk mengirim data ke dashboard (1 detik untuk realtime)
 unsigned long lastDashboardUpdate = 0;
-const unsigned long DASHBOARD_INTERVAL = 5000;
+const unsigned long DASHBOARD_INTERVAL = 1000;
+
+// Timer untuk update OLED (tidak perlu terlalu sering)
+unsigned long lastOLEDUpdate = 0;
+const unsigned long OLED_INTERVAL = 200;
 
 // ================= OLED ALERT =================
 void drawEyesWithFullText() {
@@ -88,6 +96,7 @@ void sendToDashboard(int dist, bool irTriggered, int servoPos, bool buzzerActive
 
     http.begin(dashboardUrl);
     http.addHeader("Content-Type", "application/json");
+    http.setTimeout(2000); // Timeout 2 detik untuk response cepat
 
     // Buat JSON payload
     String jsonPayload = "{";
@@ -186,11 +195,16 @@ void loop() {
     digitalWrite(TRIG, LOW);
 
     duration = pulseIn(ECHO, HIGH, 30000);
-    distance = duration * 0.034 / 2;  // 0.034 cm/microsecond (kecepatan suara)
+    distance = duration * 0.034 / 2;
+
+    // Filter nilai tidak valid
+    if (distance == 0 || distance > 400) {
+        distance = prevDistance >= 0 ? prevDistance : 0;
+    }
 
     // Variabel untuk tracking status saat ini
     int currentServoPos = servo.read();
-    bool currentBuzzer = full;
+    bool currentBuzzer = false;
 
     // ================= MODE FULL =================
     if (full) {
@@ -198,20 +212,31 @@ void loop() {
         digitalWrite(BUZZER, HIGH);
         currentServoPos = 0;
         currentBuzzer = true;
-        drawEyesWithFullText();
 
+        // Update OLED dengan interval
+        if (millis() - lastOLEDUpdate >= OLED_INTERVAL) {
+            drawEyesWithFullText();
+            lastOLEDUpdate = millis();
+        }
+
+        // Kirim notif Telegram sekali saja
         if (!notifTerkirim) {
             bot.sendMessage(CHAT_ID, "⚠️ PERINGATAN!\nTempat sampah TERISI PENUH 🚮", "");
             notifTerkirim = true;
         }
 
-        // Kirim data ke dashboard
+        // Kirim data ke dashboard jika ada perubahan atau interval tercapai
         if (millis() - lastDashboardUpdate >= DASHBOARD_INTERVAL) {
             sendToDashboard(distance, full, currentServoPos, currentBuzzer);
             lastDashboardUpdate = millis();
         }
 
-        delay(200);
+        prevFull = full;
+        prevDistance = distance;
+        prevServoPos = currentServoPos;
+        prevBuzzer = currentBuzzer;
+
+        delay(100); // Delay minimal
         return;
     }
 
@@ -222,54 +247,84 @@ void loop() {
 
     // ===== LOGIKA ULTRASONIK + DELAY 2 DETIK =====
     if (distance > 0 && distance < 20) {
+        // Objek terdeteksi, buka tutup
         servo.write(90);
         currentServoPos = 90;
         waitingToClose = false;
-    } else {
-        if (!waitingToClose) {
-            ultrasonicTimer = millis();
-            waitingToClose = true;
-        }
+        servoCloseTimer = 0;
 
-        if (millis() - ultrasonicTimer >= 2000) {
-            servo.write(0);
-            currentServoPos = 0;
-            waitingToClose = false;
+        Serial.println("Object detected! Opening lid...");
+    } else {
+        // Tidak ada objek
+        if (currentServoPos == 90) {
+            // Tutup sedang terbuka, mulai timer untuk menutup
+            if (!waitingToClose) {
+                servoCloseTimer = millis();
+                waitingToClose = true;
+                Serial.println("No object. Starting 2s timer to close...");
+            }
+
+            // Cek apakah sudah 2 detik
+            if (millis() - servoCloseTimer >= 2000) {
+                servo.write(0);
+                currentServoPos = 0;
+                waitingToClose = false;
+                Serial.println("Closing lid after 2 seconds");
+            }
         }
     }
 
     // ================= OLED NORMAL =================
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.setCursor(0, 0);
-    display.print("Jarak: ");
-    display.print(distance);
-    display.println(" cm");
+    if (millis() - lastOLEDUpdate >= OLED_INTERVAL) {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        display.print("Jarak: ");
+        display.print(distance);
+        display.println(" cm");
 
-    if (distance < 20) {
-        display.println("STATUS: OPEN");
-    } else {
-        display.println("STATUS: READY");
+        if (currentServoPos == 90) {
+            display.println("STATUS: OPEN");
+        } else if (waitingToClose) {
+            int timeLeft = 2 - ((millis() - servoCloseTimer) / 1000);
+            display.print("CLOSING: ");
+            display.print(timeLeft);
+            display.println("s");
+        } else {
+            display.println("STATUS: READY");
+        }
+
+        // Tampilkan info WiFi dan Dashboard
+        display.setCursor(0, 40);
+        if (WiFi.status() == WL_CONNECTED) {
+          display.println("WiFi: Connected");
+          display.println("Dashboard: Active");
+        } else {
+          display.println("WiFi: Disconnected");
+          display.println("Dashboard: Offline");
+        }
+
+        display.display();
+        lastOLEDUpdate = millis();
     }
-
-    // Tampilkan info WiFi dan Dashboard
-    display.setCursor(0, 40);
-    if (WiFi.status() == WL_CONNECTED) {
-      display.println("WiFi: Connected");
-      display.println("Dashboard: Active");
-    } else {
-      display.println("WiFi: Disconnected");
-      display.println("Dashboard: Offline");
-    }
-
-    display.display();
 
     // ================= KIRIM KE DASHBOARD =================
-    if (millis() - lastDashboardUpdate >= DASHBOARD_INTERVAL) {
+    // Kirim jika ada perubahan signifikan atau interval tercapai
+    bool hasChanges = (distance != prevDistance) ||
+                      (full != prevFull) ||
+                      (currentServoPos != prevServoPos) ||
+                      (currentBuzzer != prevBuzzer);
+
+    if (hasChanges || (millis() - lastDashboardUpdate >= DASHBOARD_INTERVAL)) {
         sendToDashboard(distance, full, currentServoPos, currentBuzzer);
         lastDashboardUpdate = millis();
+
+        prevDistance = distance;
+        prevFull = full;
+        prevServoPos = currentServoPos;
+        prevBuzzer = currentBuzzer;
     }
 
-    delay(200);
+    delay(50); // Delay minimal untuk stabilitas sensor
 }

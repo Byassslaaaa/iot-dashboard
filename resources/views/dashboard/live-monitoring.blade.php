@@ -272,7 +272,7 @@
             });
     }
 
-    // Update every 2 seconds
-    setInterval(updateMonitoring, 2000);
+    // Update every 1 second for real-time monitoring
+    setInterval(updateMonitoring, 1000);
 </script>
 @endpush

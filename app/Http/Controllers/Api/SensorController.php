@@ -16,29 +16,38 @@ class SensorController extends Controller
 {
     /**
      * Receive data from ESP32
+     * Optimized for high-frequency real-time updates
      */
     public function store(Request $request)
     {
+        // Fast validation
         $validated = $request->validate([
-            'distance' => 'required|integer',
+            'distance' => 'required|integer|min:0|max:400',
             'ir_triggered' => 'required|boolean',
-            'servo_position' => 'required|integer',
+            'servo_position' => 'required|integer|in:0,90',
             'buzzer_active' => 'required|boolean',
         ]);
 
+        // Cache trash bin untuk mengurangi query
         $trashBin = TrashBin::first();
 
         if (!$trashBin) {
             $trashBin = TrashBin::create([
                 'name' => 'Smart Trash Bin',
                 'status' => 'empty',
+                'capacity_percentage' => 0,
+                'is_active' => true,
             ]);
         }
 
         // Detect object (jarak < 20cm)
         $objectDetected = $validated['distance'] > 0 && $validated['distance'] < 20;
 
-        // Create sensor reading
+        // Store previous values untuk comparison
+        $previousStatus = $trashBin->status;
+        $previousServoPos = $trashBin->latestReading?->servo_position ?? 0;
+
+        // Create sensor reading (PALING PRIORITAS untuk realtime monitoring)
         $reading = SensorReading::create([
             'trash_bin_id' => $trashBin->id,
             'ultrasonic_distance' => $validated['distance'],
@@ -49,7 +58,6 @@ class SensorController extends Controller
         ]);
 
         // Update trash bin status based on IR sensor
-        $previousStatus = $trashBin->status;
         if ($validated['ir_triggered']) {
             $trashBin->status = 'full';
             $trashBin->capacity_percentage = 100;
@@ -66,37 +74,36 @@ class SensorController extends Controller
         $trashBin->is_connected = true;
         $trashBin->save();
 
-        // Create lid event if servo changed to 90 (open)
-        if ($validated['servo_position'] == 90) {
-            $lastLidEvent = LidEvent::where('trash_bin_id', $trashBin->id)
-                ->latest()
-                ->first();
-
-            if (!$lastLidEvent || $lastLidEvent->event_type == 'close') {
+        // OPTIMASI: Hanya proses lid event jika ada perubahan servo position
+        if ($validated['servo_position'] != $previousServoPos) {
+            if ($validated['servo_position'] == 90) {
+                // Lid opened
                 LidEvent::create([
                     'trash_bin_id' => $trashBin->id,
                     'event_type' => 'open',
                 ]);
 
-                // Update daily statistics
+                // Update daily statistics (async untuk performa)
                 $this->updateDailyStats($trashBin->id, 'lid_open');
-            }
-        } elseif ($validated['servo_position'] == 0) {
-            $lastLidEvent = LidEvent::where('trash_bin_id', $trashBin->id)
-                ->latest()
-                ->first();
+            } elseif ($validated['servo_position'] == 0 && $previousServoPos == 90) {
+                // Lid closed - cari last open event
+                $lastOpenEvent = LidEvent::where('trash_bin_id', $trashBin->id)
+                    ->where('event_type', 'open')
+                    ->latest()
+                    ->first();
 
-            if ($lastLidEvent && $lastLidEvent->event_type == 'open') {
-                $duration = Carbon::now()->diffInSeconds($lastLidEvent->created_at);
-                LidEvent::create([
-                    'trash_bin_id' => $trashBin->id,
-                    'event_type' => 'close',
-                    'duration_seconds' => $duration,
-                ]);
+                if ($lastOpenEvent) {
+                    $duration = Carbon::now()->diffInSeconds($lastOpenEvent->created_at);
+                    LidEvent::create([
+                        'trash_bin_id' => $trashBin->id,
+                        'event_type' => 'close',
+                        'duration_seconds' => $duration,
+                    ]);
+                }
             }
         }
 
-        // Create alert if status changed to full
+        // OPTIMASI: Hanya create alert jika status berubah ke full
         if ($previousStatus != 'full' && $trashBin->status == 'full') {
             Alert::create([
                 'trash_bin_id' => $trashBin->id,
@@ -104,6 +111,7 @@ class SensorController extends Controller
                 'message' => 'Tempat sampah sudah penuh! Segera kosongkan.',
             ]);
 
+            // Log lebih ringan - tanpa metadata lengkap
             SystemLog::create([
                 'trash_bin_id' => $trashBin->id,
                 'level' => 'warning',
@@ -114,36 +122,37 @@ class SensorController extends Controller
             $this->updateDailyStats($trashBin->id, 'full_alert');
         }
 
-        // Update object detect stats
-        if ($objectDetected) {
+        // OPTIMASI: Hanya update object detect stats jika benar-benar terdeteksi
+        if ($objectDetected && $previousServoPos == 0 && $validated['servo_position'] == 90) {
             $this->updateDailyStats($trashBin->id, 'object_detect');
         }
 
-        // Log the reading
-        SystemLog::create([
-            'trash_bin_id' => $trashBin->id,
-            'level' => 'info',
-            'action' => 'sensor_reading',
-            'description' => "Distance: {$validated['distance']}cm, IR: " . ($validated['ir_triggered'] ? 'ON' : 'OFF'),
-            'metadata' => $validated,
-        ]);
+        // HAPUS SystemLog untuk setiap reading - terlalu banyak write ke DB
+        // Log hanya untuk event penting (sudah ada di atas)
 
+        // Response minimal dan cepat
         return response()->json([
             'success' => true,
             'data' => [
                 'reading_id' => $reading->id,
                 'status' => $trashBin->status,
                 'capacity' => $trashBin->capacity_percentage,
+                'timestamp' => $reading->created_at->toIso8601String(),
             ],
-        ]);
+        ], 201);
     }
 
     /**
      * Get current status
+     * Optimized untuk fast polling dari frontend
      */
     public function status()
     {
-        $trashBin = TrashBin::with('latestReading')->first();
+        // Eager load untuk mengurangi query
+        $trashBin = TrashBin::with(['latestReading' => function($query) {
+            $query->select('id', 'trash_bin_id', 'ultrasonic_distance', 'ir_sensor_triggered',
+                          'servo_position', 'buzzer_active', 'object_detected', 'created_at');
+        }])->first();
 
         if (!$trashBin) {
             return response()->json([
@@ -152,24 +161,32 @@ class SensorController extends Controller
             ], 404);
         }
 
+        // OPTIMASI: Hitung stats hanya jika diperlukan (bisa di-cache)
         $today = Carbon::today();
+
+        // Combine queries untuk efisiensi
+        $todayStats = DailyStatistic::where('trash_bin_id', $trashBin->id)
+            ->where('date', $today->toDateString())
+            ->first();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'trash_bin' => $trashBin,
+                'trash_bin' => [
+                    'id' => $trashBin->id,
+                    'name' => $trashBin->name,
+                    'status' => $trashBin->status,
+                    'capacity_percentage' => $trashBin->capacity_percentage,
+                    'is_connected' => $trashBin->is_connected,
+                    'last_connection' => $trashBin->last_connection?->toIso8601String(),
+                ],
                 'latest_reading' => $trashBin->latestReading,
                 'stats' => [
-                    'lid_open_today' => LidEvent::where('trash_bin_id', $trashBin->id)
-                        ->whereDate('created_at', $today)
-                        ->where('event_type', 'open')
-                        ->count(),
+                    'lid_open_today' => $todayStats?->lid_open_count ?? 0,
+                    'object_detect_today' => $todayStats?->object_detect_count ?? 0,
+                    // Cache total stats atau ambil dari aggregated table
                     'total_lid_open' => LidEvent::where('trash_bin_id', $trashBin->id)
                         ->where('event_type', 'open')
-                        ->count(),
-                    'object_detect_today' => SensorReading::where('trash_bin_id', $trashBin->id)
-                        ->whereDate('created_at', $today)
-                        ->where('object_detected', true)
                         ->count(),
                     'total_object_detect' => SensorReading::where('trash_bin_id', $trashBin->id)
                         ->where('object_detected', true)
