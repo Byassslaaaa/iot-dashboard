@@ -32,33 +32,44 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Status Overview -->
         <div class="card p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Current Status</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-6">Current Status</h3>
 
-            <!-- Big Status Display -->
-            <div id="statusDisplay" class="p-8 rounded-xl text-center {{ $trashBin->status === 'full' ? 'bg-red-500' : ($trashBin->status === 'normal' ? 'bg-yellow-500' : 'bg-green-500') }} text-white mb-6">
-                <div class="text-6xl mb-2">
-                    @if($trashBin->status === 'full')
-                        &#128680;
-                    @elseif($trashBin->status === 'normal')
-                        &#128293;
-                    @else
-                        &#9989;
-                    @endif
+            <!-- Circular Progress -->
+            <div class="flex flex-col items-center justify-center mb-6">
+                <div class="relative w-48 h-48">
+                    <!-- Background Circle -->
+                    <svg class="transform -rotate-90 w-48 h-48">
+                        <circle cx="96" cy="96" r="88" stroke="#e5e7eb" stroke-width="12" fill="none" />
+                        <circle id="progressCircle"
+                                cx="96" cy="96" r="88"
+                                stroke="currentColor"
+                                class="{{ $trashBin->status === 'full' ? 'text-red-500' : ($trashBin->status === 'normal' ? 'text-yellow-500' : 'text-green-500') }}"
+                                stroke-width="12"
+                                fill="none"
+                                stroke-linecap="round"
+                                stroke-dasharray="552.92"
+                                stroke-dashoffset="{{ 552.92 - (552.92 * $trashBin->capacity_percentage / 100) }}"
+                                style="transition: stroke-dashoffset 0.5s ease;" />
+                    </svg>
+                    <!-- Center Content -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span id="capacityPercentLarge" class="text-5xl font-bold text-gray-800">{{ $trashBin->capacity_percentage }}%</span>
+                        <span id="statusTextSmall" class="text-sm font-medium mt-1 px-3 py-1 rounded-full {{ $trashBin->status === 'full' ? 'bg-red-100 text-red-700' : ($trashBin->status === 'normal' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700') }}">
+                            {{ strtoupper($trashBin->status) }}
+                        </span>
+                    </div>
                 </div>
-                <h2 id="statusText" class="text-3xl font-bold">{{ strtoupper($trashBin->status) }}</h2>
-                <p id="capacityText" class="text-white/80 mt-2">Capacity: {{ $trashBin->capacity_percentage }}%</p>
             </div>
 
-            <!-- Capacity Bar -->
-            <div class="mb-4">
-                <div class="flex justify-between text-sm text-gray-600 mb-2">
-                    <span>Capacity Level</span>
-                    <span id="capacityPercent">{{ $trashBin->capacity_percentage }}%</span>
+            <!-- Status Info -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 bg-gray-50 rounded-lg text-center">
+                    <p class="text-xs text-gray-500 mb-1">Distance</p>
+                    <p id="distanceQuick" class="text-lg font-semibold text-gray-800">{{ $trashBin->latestReading?->ultrasonic_distance ?? 0 }} cm</p>
                 </div>
-                <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
-                    <div id="capacityBar"
-                         class="h-full transition-all duration-500 {{ $trashBin->status === 'full' ? 'bg-red-500' : ($trashBin->status === 'normal' ? 'bg-yellow-500' : 'bg-green-500') }}"
-                         style="width: {{ $trashBin->capacity_percentage }}%"></div>
+                <div class="p-3 bg-gray-50 rounded-lg text-center">
+                    <p class="text-xs text-gray-500 mb-1">Lid Status</p>
+                    <p id="lidQuick" class="text-lg font-semibold text-gray-800">{{ ($trashBin->latestReading?->servo_position ?? 0) === 90 ? 'OPEN' : 'CLOSED' }}</p>
                 </div>
             </div>
         </div>
@@ -155,9 +166,9 @@
                         </td>
                         <td class="py-3 px-4">
                             @if($reading->object_detected)
-                                <span class="text-green-500">&#10004;</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">YES</span>
                             @else
-                                <span class="text-gray-400">-</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">NO</span>
                             @endif
                         </td>
                     </tr>
@@ -192,32 +203,31 @@
                     const trashBin = data.data.trash_bin;
                     const reading = data.data.latest_reading;
 
-                    // Update status display
-                    const statusDisplay = document.getElementById('statusDisplay');
-                    const statusText = document.getElementById('statusText');
-                    const capacityText = document.getElementById('capacityText');
-                    const capacityPercent = document.getElementById('capacityPercent');
-                    const capacityBar = document.getElementById('capacityBar');
+                    // Update circular progress
+                    const progressCircle = document.getElementById('progressCircle');
+                    const capacityPercentLarge = document.getElementById('capacityPercentLarge');
+                    const statusTextSmall = document.getElementById('statusTextSmall');
+                    const distanceQuick = document.getElementById('distanceQuick');
+                    const lidQuick = document.getElementById('lidQuick');
 
-                    statusText.textContent = trashBin.status.toUpperCase();
-                    capacityText.textContent = `Capacity: ${trashBin.capacity_percentage}%`;
-                    capacityPercent.textContent = `${trashBin.capacity_percentage}%`;
-                    capacityBar.style.width = `${trashBin.capacity_percentage}%`;
+                    // Update percentage
+                    capacityPercentLarge.textContent = `${trashBin.capacity_percentage}%`;
+
+                    // Update circular progress
+                    const circumference = 552.92;
+                    const offset = circumference - (circumference * trashBin.capacity_percentage / 100);
+                    progressCircle.style.strokeDashoffset = offset;
 
                     // Update colors based on status
-                    const statusColors = {
-                        full: ['bg-red-500', '&#128680;'],
-                        normal: ['bg-yellow-500', '&#128293;'],
-                        empty: ['bg-green-500', '&#9989;']
-                    };
-                    const barColors = {
-                        full: 'bg-red-500',
-                        normal: 'bg-yellow-500',
-                        empty: 'bg-green-500'
+                    const colorClasses = {
+                        full: { circle: 'text-red-500', badge: 'bg-red-100 text-red-700' },
+                        normal: { circle: 'text-yellow-500', badge: 'bg-yellow-100 text-yellow-700' },
+                        empty: { circle: 'text-green-500', badge: 'bg-green-100 text-green-700' }
                     };
 
-                    statusDisplay.className = `p-8 rounded-xl text-center ${statusColors[trashBin.status][0]} text-white mb-6`;
-                    capacityBar.className = `h-full transition-all duration-500 ${barColors[trashBin.status]}`;
+                    progressCircle.className = colorClasses[trashBin.status].circle;
+                    statusTextSmall.className = `text-sm font-medium mt-1 px-3 py-1 rounded-full ${colorClasses[trashBin.status].badge}`;
+                    statusTextSmall.textContent = trashBin.status.toUpperCase();
 
                     // Update connection status based on is_connected attribute
                     const connectionStatus = document.getElementById('connectionStatus');
@@ -237,6 +247,11 @@
 
                     // Update sensor readings if available
                     if (reading) {
+                        // Update quick status cards
+                        distanceQuick.textContent = `${reading.ultrasonic_distance} cm`;
+                        lidQuick.textContent = reading.servo_position === 90 ? 'OPEN' : 'CLOSED';
+
+                        // Update detailed sensor readings
                         document.getElementById('ultrasonicReading').innerHTML = `${reading.ultrasonic_distance} <span class="text-sm font-normal">cm</span>`;
                         document.getElementById('irReading').textContent = reading.ir_sensor_triggered ? 'TRIGGERED' : 'CLEAR';
                         document.getElementById('irReading').className = 'text-2xl font-bold text-gray-800';

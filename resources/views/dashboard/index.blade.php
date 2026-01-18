@@ -25,13 +25,6 @@
             <div class="mt-4">
                 <h2 class="text-2xl font-bold">
                     STATUS: {{ strtoupper($trashBin->status) }}
-                    @if($trashBin->status === 'full')
-                        &#128293;
-                    @elseif($trashBin->status === 'normal')
-                        &#9989;
-                    @else
-                        &#128994;
-                    @endif
                 </h2>
                 <p class="text-white/80 mt-1">Capacity: {{ $trashBin->capacity_percentage }}%</p>
             </div>
