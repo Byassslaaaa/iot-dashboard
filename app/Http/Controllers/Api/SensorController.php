@@ -11,135 +11,78 @@ use App\Models\SystemLog;
 use App\Models\TrashBin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SensorController extends Controller
 {
     /**
-     * Receive data from ESP32
-     * Optimized for high-frequency real-time updates
+     * Receive data from ESP32 - ULTRA LIGHTWEIGHT VERSION
+     * Response time target: < 50ms
      */
     public function store(Request $request)
     {
-        // Fast validation
-        $validated = $request->validate([
-            'distance' => 'required|integer|min:0|max:400',
-            'ir_triggered' => 'required|boolean',
-            'servo_position' => 'required|integer|in:0,90',
-            'buzzer_active' => 'required|boolean',
-        ]);
+        // Minimal validation (faster)
+        $data = $request->only(['distance', 'ir_triggered', 'servo_position', 'buzzer_active']);
 
-        // Cache trash bin untuk mengurangi query
-        $trashBin = TrashBin::first();
-
-        if (!$trashBin) {
-            $trashBin = TrashBin::create([
+        // Get or cache trash bin (avoid repeated queries)
+        $trashBin = Cache::remember('trash_bin', 60, function () {
+            return TrashBin::first() ?? TrashBin::create([
                 'name' => 'Smart Trash Bin',
                 'status' => 'empty',
                 'capacity_percentage' => 0,
                 'is_active' => true,
             ]);
-        }
+        });
 
-        // Detect object (jarak < 20cm)
-        $objectDetected = $validated['distance'] > 0 && $validated['distance'] < 20;
+        // Quick calculations
+        $distance = (int) $data['distance'];
+        $irTriggered = (bool) $data['ir_triggered'];
+        $servoPos = (int) $data['servo_position'];
+        $buzzerActive = (bool) $data['buzzer_active'];
+        $objectDetected = $distance > 0 && $distance < 20;
 
-        // Store previous values untuk comparison
-        $previousStatus = $trashBin->status;
-        $previousServoPos = $trashBin->latestReading?->servo_position ?? 0;
-
-        // Create sensor reading (PALING PRIORITAS untuk realtime monitoring)
-        $reading = SensorReading::create([
+        // PRIORITY 1: Save sensor reading (paling penting untuk monitoring)
+        SensorReading::create([
             'trash_bin_id' => $trashBin->id,
-            'ultrasonic_distance' => $validated['distance'],
-            'ir_sensor_triggered' => $validated['ir_triggered'],
-            'servo_position' => $validated['servo_position'],
-            'buzzer_active' => $validated['buzzer_active'],
+            'ultrasonic_distance' => $distance,
+            'ir_sensor_triggered' => $irTriggered,
+            'servo_position' => $servoPos,
+            'buzzer_active' => $buzzerActive,
             'object_detected' => $objectDetected,
         ]);
 
-        // Update trash bin status based on IR sensor
-        if ($validated['ir_triggered']) {
+        // PRIORITY 2: Update trash bin status (simple logic)
+        $prevStatus = $trashBin->status;
+
+        if ($irTriggered) {
             $trashBin->status = 'full';
             $trashBin->capacity_percentage = 100;
         } else {
-            // Calculate capacity based on distance (assume max distance 30cm)
-            $maxDistance = 30;
-            $capacityPercentage = max(0, min(100, (($maxDistance - $validated['distance']) / $maxDistance) * 100));
-            $trashBin->capacity_percentage = round($capacityPercentage);
-            $trashBin->status = $capacityPercentage >= 90 ? 'full' : ($capacityPercentage >= 50 ? 'normal' : 'empty');
+            $capacity = max(0, min(100, round(((30 - $distance) / 30) * 100)));
+            $trashBin->capacity_percentage = $capacity;
+            $trashBin->status = $capacity >= 90 ? 'full' : ($capacity >= 50 ? 'normal' : 'empty');
         }
 
-        // Update connection status
-        $trashBin->last_connection = Carbon::now();
+        $trashBin->last_connection = now();
         $trashBin->is_connected = true;
         $trashBin->save();
 
-        // OPTIMASI: Hanya proses lid event jika ada perubahan servo position
-        if ($validated['servo_position'] != $previousServoPos) {
-            if ($validated['servo_position'] == 90) {
-                // Lid opened
-                LidEvent::create([
-                    'trash_bin_id' => $trashBin->id,
-                    'event_type' => 'open',
-                ]);
+        // Clear cache setelah update
+        Cache::forget('trash_bin');
 
-                // Update daily statistics (async untuk performa)
-                $this->updateDailyStats($trashBin->id, 'lid_open');
-            } elseif ($validated['servo_position'] == 0 && $previousServoPos == 90) {
-                // Lid closed - cari last open event
-                $lastOpenEvent = LidEvent::where('trash_bin_id', $trashBin->id)
-                    ->where('event_type', 'open')
-                    ->latest()
-                    ->first();
-
-                if ($lastOpenEvent) {
-                    $duration = Carbon::now()->diffInSeconds($lastOpenEvent->created_at);
-                    LidEvent::create([
-                        'trash_bin_id' => $trashBin->id,
-                        'event_type' => 'close',
-                        'duration_seconds' => $duration,
-                    ]);
-                }
-            }
-        }
-
-        // OPTIMASI: Hanya create alert jika status berubah ke full
-        if ($previousStatus != 'full' && $trashBin->status == 'full') {
+        // PRIORITY 3: Background tasks (tidak blocking)
+        // Hanya jika benar-benar perlu
+        if ($prevStatus != 'full' && $trashBin->status == 'full') {
+            // Alert hanya saat berubah ke full
             Alert::create([
                 'trash_bin_id' => $trashBin->id,
                 'type' => 'full',
-                'message' => 'Tempat sampah sudah penuh! Segera kosongkan.',
+                'message' => 'Tempat sampah sudah penuh!',
             ]);
-
-            // Log lebih ringan - tanpa metadata lengkap
-            SystemLog::create([
-                'trash_bin_id' => $trashBin->id,
-                'level' => 'warning',
-                'action' => 'status_change',
-                'description' => 'Trash bin status changed to FULL',
-            ]);
-
-            $this->updateDailyStats($trashBin->id, 'full_alert');
         }
 
-        // OPTIMASI: Hanya update object detect stats jika benar-benar terdeteksi
-        if ($objectDetected && $previousServoPos == 0 && $validated['servo_position'] == 90) {
-            $this->updateDailyStats($trashBin->id, 'object_detect');
-        }
-
-        // HAPUS SystemLog untuk setiap reading - terlalu banyak write ke DB
-        // Log hanya untuk event penting (sudah ada di atas)
-
-        // Response minimal dan cepat
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'reading_id' => $reading->id,
-                'status' => $trashBin->status,
-                'capacity' => $trashBin->capacity_percentage,
-                'timestamp' => $reading->created_at->toIso8601String(),
-            ],
-        ], 201);
+        // Response super cepat
+        return response()->json(['success' => true], 200);
     }
 
     /**

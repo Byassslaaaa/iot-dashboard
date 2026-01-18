@@ -64,6 +64,7 @@ bool prevFull = false;
 bool notifTerkirim = false;
 unsigned long servoCloseTimer = 0;
 bool waitingToClose = false;
+int currentServoPos = 0;  // Track servo position state
 int prevServoPos = 0;
 bool prevBuzzer = false;
 
@@ -203,15 +204,19 @@ void loop() {
     }
 
     // Variabel untuk tracking status saat ini
-    int currentServoPos = servo.read();
     bool currentBuzzer = false;
 
     // ================= MODE FULL =================
     if (full) {
-        servo.write(0);
+        // Tutup servo dan aktifkan buzzer
+        if (currentServoPos != 0) {
+            servo.write(0);
+            currentServoPos = 0;
+        }
         digitalWrite(BUZZER, HIGH);
-        currentServoPos = 0;
         currentBuzzer = true;
+        waitingToClose = false;
+        servoCloseTimer = 0;
 
         // Update OLED dengan interval
         if (millis() - lastOLEDUpdate >= OLED_INTERVAL) {
@@ -247,31 +252,39 @@ void loop() {
 
     // ===== LOGIKA ULTRASONIK + DELAY 2 DETIK =====
     if (distance > 0 && distance < 20) {
-        // Objek terdeteksi, buka tutup
-        servo.write(90);
-        currentServoPos = 90;
+        // Objek terdeteksi dekat (< 20cm)
+        if (currentServoPos != 90) {
+            // Buka tutup hanya jika masih tertutup
+            servo.write(90);
+            currentServoPos = 90;
+            Serial.println("Object detected! Opening lid...");
+        }
+        // Reset timer karena masih ada objek
         waitingToClose = false;
         servoCloseTimer = 0;
-
-        Serial.println("Object detected! Opening lid...");
     } else {
-        // Tidak ada objek
+        // Tidak ada objek dekat
         if (currentServoPos == 90) {
-            // Tutup sedang terbuka, mulai timer untuk menutup
+            // Tutup sedang terbuka
             if (!waitingToClose) {
+                // Mulai timer untuk menutup
                 servoCloseTimer = millis();
                 waitingToClose = true;
                 Serial.println("No object. Starting 2s timer to close...");
-            }
-
-            // Cek apakah sudah 2 detik
-            if (millis() - servoCloseTimer >= 2000) {
-                servo.write(0);
-                currentServoPos = 0;
-                waitingToClose = false;
-                Serial.println("Closing lid after 2 seconds");
+            } else {
+                // Timer sedang berjalan, cek apakah sudah 2 detik
+                unsigned long elapsed = millis() - servoCloseTimer;
+                if (elapsed >= 2000) {
+                    // Sudah 2 detik, tutup servo
+                    servo.write(0);
+                    currentServoPos = 0;
+                    waitingToClose = false;
+                    Serial.println("Closing lid after 2 seconds");
+                }
+                // Tidak perlu print countdown setiap loop (terlalu spam)
             }
         }
+        // Jika servo sudah tertutup (0), tidak perlu lakukan apa-apa
     }
 
     // ================= OLED NORMAL =================
